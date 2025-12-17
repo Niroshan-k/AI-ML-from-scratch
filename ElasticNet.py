@@ -3,8 +3,10 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 import matplotlib.pyplot as plt
 
-class LinearRegression:
-    def __init__(self, learning_rate, n_iterations):
+class ElasticNet:
+    def __init__(self, l1_ratio, l2_ratio, learning_rate, n_iterations):
+        self.l1_ratio = l1_ratio
+        self.l2_ratio = l2_ratio
         self.learning_rate = learning_rate
         self.n_iterations = n_iterations
 
@@ -21,21 +23,23 @@ class LinearRegression:
     
     def update_weights(self):
         Y_pred = self.predict(self.X)
-        dw = (-2 / self.m) * (self.X.T.dot(self.Y - Y_pred))
-        db = (-2 / self.m) * np.sum(self.Y - Y_pred)
+        dw = np.zeros(self.n)
+        for j in range(self.n):
+            l1_grad = self.l1_ratio if self.weights[j] > 0 else -self.l1_ratio
+            dw[j] = (-2 * (self.X[:, j].dot(self.Y - Y_pred)) + l1_grad + 2 * self.l2_ratio * self.weights[j] ) / self.m
+        db = -2 * np.sum(self.Y - Y_pred) / self.m
         self.weights -= self.learning_rate * dw
         self.bias -= self.learning_rate * db 
 
     def predict(self, X):
         return X.dot(self.weights) + self.bias
-    
 
 df = pd.read_csv('salary_data.csv')
 X = df.iloc[:, :-1].values
 Y = df.iloc[:, -1].values
 X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=1/3, random_state=42)
 
-model = LinearRegression(learning_rate=0.01, n_iterations=1000)
+model = ElasticNet(l1_ratio=0.5, l2_ratio=0.5, learning_rate=0.01, n_iterations=1000)
 model.fit(X_train, Y_train)
 
 Y_pred = model.predict(X_test)
@@ -46,7 +50,7 @@ print("Trained bias:", np.round(model.bias, 2))
 
 plt.scatter(X_test, Y_test, color='blue')
 plt.plot(X_test, Y_pred, color='red')
-plt.title('Linear Regression')
+plt.title('Elastic Net Regression')
 plt.xlabel('Years of Experience')
 plt.ylabel('Salary')
 plt.show()
